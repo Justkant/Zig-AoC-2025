@@ -36,16 +36,63 @@ const data_ex = @embedFile("data/day01_ex.txt");
 fn part1(buffer: []const u8) !usize {
     var lineIterator = tokenizeAny(u8, buffer, "\r\n");
 
+    var total: usize = 0;
+    var pos: isize = 50;
     while (lineIterator.next()) |line| {
-        print("line: {s}\n", .{line});
+        const distance = @mod(try parseInt(isize, line[1..], 10), 100);
+
+        pos += switch (line[0]) {
+            'L' => -distance,
+            'R' => distance,
+            else => 0,
+        };
+
+        pos += if (pos < 0) 100 else if (pos > 99) -100 else 0;
+
+        if (pos == 0) total += 1;
+
+        // print("line: {s} | distance: {d} | pos: {d} | total: {d}\n", .{ line, distance, pos, total });
     }
 
-    return 0;
+    return total;
 }
 
 fn part2(buffer: []const u8) !usize {
-    _ = buffer; // autofix
-    return 0;
+    var lineIterator = tokenizeAny(u8, buffer, "\r\n");
+
+    var total: usize = 0;
+    var pos: isize = 50;
+    while (lineIterator.next()) |line| {
+        const distance = try parseInt(isize, line[1..], 10);
+
+        // add full rotations
+        total += @divFloor(@as(usize, @intCast(distance)), 100);
+
+        const finalDistance = @mod(distance, 100);
+        const prevPos = pos;
+        pos += switch (line[0]) {
+            'L' => -finalDistance,
+            'R' => finalDistance,
+            else => 0,
+        };
+
+        const rotated = blk: {
+            if (pos < 0) {
+                pos += 100;
+                if (prevPos != 0) break :blk true;
+            } else if (pos > 99) {
+                pos -= 100;
+                break :blk true;
+            }
+            break :blk false;
+        };
+
+        if (pos == 0 or rotated) total += 1;
+
+        // print("line: {s} | distance: {d} | rotations: {d} | finalDistance: {d} | pos: {d} | total: {d}\n", .{ line, distance, @divFloor(@as(usize, @intCast(distance)), 100), finalDistance, pos, total });
+    }
+
+    return total;
 }
 
 pub fn main() !void {
@@ -57,13 +104,13 @@ pub fn main() !void {
 }
 
 test "part1" {
-    const expected = 0;
+    const expected = 3;
     const actual = try part1(data_ex);
     try std.testing.expectEqual(expected, actual);
 }
 
 test "part2" {
-    const expected = 0;
+    const expected = 6;
     const actual = try part2(data_ex);
     try std.testing.expectEqual(expected, actual);
 }
