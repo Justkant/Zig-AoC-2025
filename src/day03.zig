@@ -34,13 +34,75 @@ const data = @embedFile("data/day03.txt");
 const data_ex = @embedFile("data/day03_ex.txt");
 
 fn part1(buffer: []const u8) !usize {
-    _ = buffer; // autofix
-    return 0;
+    var bankIterator = tokenizeAny(u8, buffer, "\r\n");
+
+    var total: usize = 0;
+    while (bankIterator.next()) |bank| {
+        var firstBattery: u8 = 0;
+        var secondBattery: u8 = 0;
+        for (bank[0 .. bank.len - 1]) |battery| {
+            const value = try std.fmt.charToDigit(battery, 10);
+            if (value > firstBattery) {
+                firstBattery = value;
+                secondBattery = 0;
+            } else if (value > secondBattery) {
+                secondBattery = value;
+            }
+        }
+        const value = try std.fmt.charToDigit(bank[bank.len - 1], 10);
+        if (value > secondBattery) {
+            secondBattery = value;
+        }
+
+        total += firstBattery * 10 + secondBattery;
+
+        // print("bank: {s} | firstBattery: {d} | secondBattery: {d} | total: {d}\n", .{ bank, firstBattery, secondBattery, total });
+    }
+
+    return total;
 }
 
 fn part2(buffer: []const u8) !usize {
-    _ = buffer; // autofix
-    return 0;
+    var bankIterator = tokenizeAny(u8, buffer, "\r\n");
+
+    var total: usize = 0;
+    while (bankIterator.next()) |bank| {
+        var activeBatteries = [_]u8{0} ** 12;
+        var bankStart: usize = 0;
+        var activePos: usize = 0;
+        while (activePos < activeBatteries.len) : (activePos += 1) {
+            const remaining = activeBatteries.len - 1 - activePos;
+            const bankEnd = bank.len - remaining;
+            const bankVue = bank[bankStart..bankEnd];
+            for (bankVue, bankStart..) |battery, bankPos| {
+                const value = try std.fmt.charToDigit(battery, 10);
+                if (value > activeBatteries[activePos]) {
+                    activeBatteries[activePos] = value;
+                    for (activePos + 1..activeBatteries.len) |j| {
+                        activeBatteries[j] = 0;
+                    }
+                    bankStart = bankPos + 1;
+                }
+                // print("value: {d} | bankStart: {d} | bankEnd: {d} | activeStart: {d} | remaining: {d} | activeBatteries: {any} | bank vue: {s} \n", .{ value, bankStart, bankEnd, activeStart, remaining, activeBatteries, bankVue });
+            }
+        }
+
+        var bankJoltage: usize = 0;
+        for (0..activeBatteries.len) |i| {
+            const pos = activeBatteries.len - 1 - i;
+            if (activeBatteries[pos] == 0) {
+                print("incomplete bank, couldn't find 12 active batteries\n", .{});
+                break;
+            }
+            bankJoltage += activeBatteries[pos] * std.math.pow(usize, 10, i);
+        }
+
+        total += bankJoltage;
+
+        // print("bank: {s} | activeBatteries: {any} | bankJoltage: {d} | total: {d}\n", .{ bank, activeBatteries, bankJoltage, total });
+    }
+
+    return total;
 }
 
 pub fn main() !void {
@@ -52,13 +114,13 @@ pub fn main() !void {
 }
 
 test "part1" {
-    const expected = 0;
+    const expected = 357;
     const actual = try part1(data_ex);
     try std.testing.expectEqual(expected, actual);
 }
 
 test "part2" {
-    const expected = 0;
+    const expected = 3121910778619;
     const actual = try part2(data_ex);
     try std.testing.expectEqual(expected, actual);
 }
