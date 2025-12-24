@@ -33,8 +33,55 @@ const gpa = util.gpa;
 const data = @embedFile("data/day10.txt");
 const data_ex = @embedFile("data/day10_ex.txt");
 
+const Machine = struct {
+    indicatorLightDiagram: []const u8 = &.{},
+    buttonWiringSchematics: List(List(usize)) = .empty,
+    joltageRequirements: List(usize) = .empty,
+};
+
 fn part1(buffer: []const u8) !usize {
-    _ = buffer; // autofix
+    const lineSep = "\r\n";
+    var lineIterator = tokenizeAny(u8, buffer, lineSep);
+    var machines = List(Machine).empty;
+
+    while (lineIterator.next()) |line| {
+        var machineIterator = splitSca(u8, line, ' ');
+        var machine: Machine = .{};
+        while (machineIterator.next()) |machineData| {
+            switch (machineData[0]) {
+                '[' => {
+                    machine.indicatorLightDiagram = machineData[1 .. machineData.len - 1];
+                },
+                '(' => {
+                    var buttonIterator = splitSca(u8, machineData[1 .. machineData.len - 1], ',');
+                    var buttonLights = List(usize).empty;
+                    while (buttonIterator.next()) |button| {
+                        try buttonLights.append(gpa, try parseInt(usize, button, 10));
+                    }
+                    try machine.buttonWiringSchematics.append(gpa, buttonLights);
+                },
+                '{' => {
+                    var joltageIterator = splitSca(u8, machineData[1 .. machineData.len - 1], ',');
+                    while (joltageIterator.next()) |joltage| {
+                        try machine.joltageRequirements.append(gpa, try parseInt(usize, joltage, 10));
+                    }
+                },
+                else => {},
+            }
+        }
+        try machines.append(gpa, machine);
+    }
+
+    for (machines.items, 0..) |machine, i| {
+        print("\r\nmachine: {d}\n", .{i});
+        print("lights: {s}\n", .{machine.indicatorLightDiagram});
+        print("buttons: {d}\n", .{machine.buttonWiringSchematics.items.len});
+        for (machine.buttonWiringSchematics.items, 1..) |button, j| {
+            print("  button {d}: {any}\n", .{ j, button.items });
+        }
+        print("joltages: {any}\n", .{machine.joltageRequirements.items});
+    }
+
     return 0;
 }
 
@@ -52,7 +99,7 @@ pub fn main() !void {
 }
 
 test "part1" {
-    const expected = 0;
+    const expected = 7;
     const actual = try part1(data_ex);
     try std.testing.expectEqual(expected, actual);
 }
